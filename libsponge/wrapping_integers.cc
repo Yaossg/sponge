@@ -1,5 +1,7 @@
 #include "wrapping_integers.hh"
 
+#include <algorithm>
+
 // Dummy implementation of a 32-bit wrapping integer
 
 // For Lab 2, please replace with a real implementation that passes the
@@ -14,8 +16,7 @@ using namespace std;
 //! \param n The input absolute 64-bit sequence number
 //! \param isn The initial sequence number
 WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
-    DUMMY_CODE(n, isn);
-    return WrappingInt32{0};
+    return WrappingInt32{static_cast<uint32_t>(n + isn.raw_value())};
 }
 
 //! Transform a WrappingInt32 into an "absolute" 64-bit sequence number (zero-indexed)
@@ -28,7 +29,22 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 //! runs from the local TCPSender to the remote TCPReceiver and has one ISN,
 //! and the other stream runs from the remote TCPSender to the local TCPReceiver and
 //! has a different ISN.
+
+uint64_t diff(uint64_t a, uint64_t b) {
+    return a > b ? a - b : b - a;
+}
+
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
-    DUMMY_CODE(n, isn, checkpoint);
-    return {};
+    uint32_t lo = n.raw_value() - isn.raw_value();
+    uint64_t hi = checkpoint >> 32;
+    uint64_t m1 = ((hi - 1) << 32) | lo;
+    uint64_t m2 = (hi << 32) | lo;
+    uint64_t m3 = ((hi + 1) << 32) | lo;
+    uint64_t d1 = diff(m1, checkpoint);
+    uint64_t d2 = diff(m2, checkpoint);
+    uint64_t d3 = diff(m3, checkpoint);
+    uint64_t m = min({d1, d2, d3});
+    if (m == d1) return m1;
+    if (m == d2) return m2;
+    /*if (m == d3)*/ return m3;
 }
